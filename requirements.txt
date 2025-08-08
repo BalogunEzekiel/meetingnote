@@ -1,10 +1,9 @@
-
-streamlit
+streamlit==1.33.0
+streamlit-webrtc==0.45.0
 speechrecognition
 gTTS
 googletrans==4.0.0-rc1
 deep-translator
-streamlit-webrtc
 langdetect
 av
 numpy
