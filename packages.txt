@@ -1,1 +1,8 @@
-#ffmpeg
+ffmpeg
+libavdevice-dev
+libavfilter-dev
+libavformat-dev
+libavcodec-dev
+libavutil-dev
+libswscale-dev
+portaudio19-dev
