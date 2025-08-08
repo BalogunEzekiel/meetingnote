@@ -8,4 +8,5 @@ langdetect
 av
 numpy
 pyaudio
-
+pydub
+ffmpeg-python
