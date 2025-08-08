@@ -1,6 +1,5 @@
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, WebRtcMode, RTCConfiguration
-import speech_recognition as sr
 from utils.translator import translate_text, generate_tts_audio
 import tempfile
 import os
@@ -9,6 +8,7 @@ import queue
 import numpy as np
 import wave
 from pydub import AudioSegment
+import whisper
 
 # Page setup
 st.set_page_config(page_title="🎙️ Gisting", layout="centered")
@@ -42,10 +42,16 @@ rtc_configuration = RTCConfiguration(
     }
 )
 
+# Load Whisper model
+@st.cache_resource
+def load_model():
+    return whisper.load_model("base")  # or "small", "medium", "large"
+
+whisper_model = load_model()
+
 # Audio processor class
 class AudioProcessor(AudioProcessorBase):
     def __init__(self):
-        self.recognizer = sr.Recognizer()
         self.result_queue = queue.Queue()
 
     def recv(self, frame: av.AudioFrame):
@@ -67,12 +73,11 @@ class AudioProcessor(AudioProcessorBase):
             audio_path = f.name
 
         try:
-            with sr.AudioFile(audio_path) as source:
-                audio_data = self.recognizer.record(source)
-                text = self.recognizer.recognize_google(audio_data, language=languages[source_lang])
-                self.result_queue.put(text)
-        except Exception:
-            self.result_queue.put("[Could not transcribe speech]")
+            result = whisper_model.transcribe(audio_path, language=languages[source_lang])
+            text = result.get("text", "[No speech detected]")
+            self.result_queue.put(text)
+        except Exception as e:
+            self.result_queue.put(f"[Could not transcribe speech: {e}]")
         finally:
             if os.path.exists(audio_path):
                 os.remove(audio_path)
@@ -142,11 +147,9 @@ if uploaded_file:
         temp_wav_path = temp_aac_path.replace(".aac", ".wav")
         audio.export(temp_wav_path, format="wav")
 
-        # Transcribe
-        recognizer = sr.Recognizer()
-        with sr.AudioFile(temp_wav_path) as source:
-            audio_data = recognizer.record(source)
-            uploaded_transcript = recognizer.recognize_google(audio_data, language=languages[source_lang])
+        # Transcribe with Whisper
+        result = whisper_model.transcribe(temp_wav_path, language=languages[source_lang])
+        uploaded_transcript = result.get("text", "[No speech detected]")
 
         st.markdown("### ✏️ Transcribed Text from Upload")
         st.write(uploaded_transcript)
@@ -175,7 +178,6 @@ if uploaded_file:
         st.exception(e)
 
     finally:
-        # Clean up
         if 'temp_aac_path' in locals() and os.path.exists(temp_aac_path):
             os.remove(temp_aac_path)
         if 'temp_wav_path' in locals() and os.path.exists(temp_wav_path):
