@@ -23,7 +23,7 @@ languages = {
 tts_supported = tts_langs().keys()
 
 # Streamlit UI
-st.set_page_config(page_title="🎙️ Voice ↔ Text Translator", layout="centered")
+st.set_page_config(page_title="🎙️ Strategic Meeting", layout="centered")
 st.title("🎙️ Voice ↔ Text Translator App")
 
 mode = st.radio("Choose Mode", ["📝 Text → Voice", "🎤 Voice (Audio File) → Text"])
