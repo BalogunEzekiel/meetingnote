@@ -7,3 +7,4 @@ libavutil-dev
 libswscale-dev
 portaudio19-dev
 python3-pyaudio
+ffmpeg
