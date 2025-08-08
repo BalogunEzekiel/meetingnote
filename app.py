@@ -1,5 +1,3 @@
-# app.py
-
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, AudioProcessorBase, WebRtcMode, RTCConfiguration
 import speech_recognition as sr
@@ -10,11 +8,10 @@ import av
 import queue
 import numpy as np
 import wave
+from pydub import AudioSegment
 
 # Page setup
 st.set_page_config(page_title="🎙️ Gisting", layout="centered")
-
-# Show logo and title
 st.image("assets/gistinglogo.png", width=150)
 st.subheader("Real-Time Voice-to-Voice Translator")
 
@@ -29,7 +26,6 @@ languages = {
 # Language selection
 source_lang = st.selectbox("🎤 Select Spoken Language", options=list(languages.keys()))
 target_lang = st.selectbox("🗣️ Translate To", options=list(languages.keys()), index=1)
-
 st.markdown("💡 Speak clearly into your microphone...")
 
 # TURN/STUN Configuration
@@ -53,34 +49,29 @@ class AudioProcessor(AudioProcessorBase):
         self.result_queue = queue.Queue()
 
     def recv(self, frame: av.AudioFrame):
-        # Convert to numpy array
         audio_np = frame.to_ndarray()
         sample_rate = frame.sample_rate
         channels = frame.layout.channels
 
-        # Convert stereo to mono
         if channels > 1:
             audio_np = np.mean(audio_np, axis=1)
 
-        # Convert float32 to int16 PCM
         audio_int16 = np.int16(audio_np * 32767)
 
-        # Write to proper WAV file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
             with wave.open(f, 'wb') as wf:
                 wf.setnchannels(1)
-                wf.setsampwidth(2)  # 2 bytes = 16 bits
+                wf.setsampwidth(2)
                 wf.setframerate(sample_rate)
                 wf.writeframes(audio_int16.tobytes())
             audio_path = f.name
 
-        # Perform speech recognition
         try:
             with sr.AudioFile(audio_path) as source:
                 audio_data = self.recognizer.record(source)
                 text = self.recognizer.recognize_google(audio_data, language=languages[source_lang])
                 self.result_queue.put(text)
-        except Exception as e:
+        except Exception:
             self.result_queue.put("[Could not transcribe speech]")
         finally:
             os.remove(audio_path)
@@ -91,7 +82,7 @@ class AudioProcessor(AudioProcessorBase):
 if "transcribed" not in st.session_state:
     st.session_state.transcribed = ""
 
-# WebRTC audio stream with async processing
+# WebRTC audio stream
 webrtc_ctx = webrtc_streamer(
     key="voice-translator",
     mode=WebRtcMode.SENDRECV,
@@ -101,7 +92,6 @@ webrtc_ctx = webrtc_streamer(
     async_processing=True
 )
 
-# Retrieve transcribed text from audio processor
 if webrtc_ctx and webrtc_ctx.state.playing:
     if webrtc_ctx.audio_processor:
         try:
@@ -111,7 +101,7 @@ if webrtc_ctx and webrtc_ctx.state.playing:
         except queue.Empty:
             pass
 
-# Display transcribed and translated output
+# Display transcription & translation from live input
 if st.session_state.transcribed:
     st.markdown("### ✏️ Transcribed Text")
     st.write(st.session_state.transcribed)
@@ -134,3 +124,50 @@ if st.session_state.transcribed:
         os.remove(audio_file)
     else:
         st.warning(f"Speech not supported for language: {target_lang}")
+
+# Upload .aac file for transcription
+st.markdown("### 📤 Or Upload an .aac File for Transcription")
+uploaded_file = st.file_uploader("Upload an AAC audio file", type=["aac"])
+
+if uploaded_file:
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".aac") as temp_aac:
+        temp_aac.write(uploaded_file.read())
+        temp_aac_path = temp_aac.name
+
+    try:
+        audio = AudioSegment.from_file(temp_aac_path, format="aac")
+        temp_wav_path = temp_aac_path.replace(".aac", ".wav")
+        audio.export(temp_wav_path, format="wav")
+
+        recognizer = sr.Recognizer()
+        with sr.AudioFile(temp_wav_path) as source:
+            audio_data = recognizer.record(source)
+            uploaded_transcript = recognizer.recognize_google(audio_data, language=languages[source_lang])
+
+        st.markdown("### ✏️ Transcribed Text from Upload")
+        st.write(uploaded_transcript)
+
+        translated = translate_text(
+            uploaded_transcript,
+            src_lang=languages[source_lang],
+            target_lang=languages[target_lang]
+        )
+
+        st.markdown("### 🌍 Translated Text")
+        st.success(translated)
+
+        audio_file = generate_tts_audio(translated, lang_code=languages[target_lang])
+        if audio_file:
+            st.markdown("### 🔊 Translated Audio")
+            with open(audio_file, "rb") as f:
+                st.audio(f.read(), format="audio/mp3")
+            os.remove(audio_file)
+        else:
+            st.warning(f"Speech not supported for language: {target_lang}")
+
+    except Exception as e:
+        st.error(f"Error processing uploaded audio: {e}")
+    finally:
+        os.remove(temp_aac_path)
+        if os.path.exists(temp_wav_path):
+            os.remove(temp_wav_path)
