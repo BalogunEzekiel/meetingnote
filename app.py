@@ -28,7 +28,7 @@ st.title("🎙️ Strategic Meeting Translator App")
 
 from pydub.utils import which
 AudioSegment.converter = which("ffmpeg")
-AudioSegment.ffprobe = which("ffprobe")
+#AudioSegment.ffprobe = which("ffprobe")
 
 mode = st.radio("Choose Mode", ["📝 Text → Voice", "🎤 Voice (Audio File) → Text"])
 
