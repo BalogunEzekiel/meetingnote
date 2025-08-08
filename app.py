@@ -27,8 +27,14 @@ st.set_page_config(page_title="🎙️ Strategic Meeting", layout="centered")
 st.title("🎙️ Strategic Meeting Translator App")
 
 from pydub.utils import which
+
 AudioSegment.converter = which("ffmpeg")
-#AudioSegment.ffprobe = which("ffprobe")
+if not AudioSegment.converter:
+    st.error("❌ ffmpeg not found. Please install it via packages.txt")
+    
+AudioSegment.ffprobe = which("ffprobe")
+if not AudioSegment.ffprobe:
+    st.error("❌ ffprobe not found. Please install it via packages.txt")
 
 mode = st.radio("Choose Mode", ["📝 Text → Voice", "🎤 Voice (Audio File) → Text"])
 
