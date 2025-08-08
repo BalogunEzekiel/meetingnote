@@ -26,16 +26,17 @@ tts_supported = tts_langs().keys()
 st.set_page_config(page_title="🎙️ Strategic Meeting", layout="centered")
 st.title("🎙️ Strategic Meeting Translator App")
 
-from pydub.utils import which
+# Detect ffmpeg and ffprobe
+ffmpeg_path = which("ffmpeg")
+ffprobe_path = which("ffprobe")
 
-AudioSegment.converter = which("ffmpeg")
-if not AudioSegment.converter:
-    st.error("❌ ffmpeg not found. Please install it via packages.txt")
+if not ffmpeg_path or not ffprobe_path:
+    st.error("❌ ffmpeg or ffprobe not found. Make sure 'ffmpeg' is in packages.txt")
+else:
+    AudioSegment.converter = ffmpeg_path
+    AudioSegment.ffprobe = ffprobe_path
+    st.success("✅ ffmpeg and ffprobe configured successfully.")
     
-AudioSegment.ffprobe = which("ffprobe")
-if not AudioSegment.ffprobe:
-    st.error("❌ ffprobe not found. Please install it via packages.txt")
-
 mode = st.radio("Choose Mode", ["📝 Text → Voice", "🎤 Voice (Audio File) → Text"])
 
 selected_languages = st.multiselect(
