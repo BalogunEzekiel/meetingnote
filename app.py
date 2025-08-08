@@ -36,10 +36,9 @@ st.markdown("💡 Speak clearly into your microphone...")
 rtc_configuration = RTCConfiguration(
     {
         "iceServers": [
-            {"urls": ["stun:stun2.l.google.com:19302"]},
-            {"urls": ["stun:stun.ekiga.net"]},
+            {"urls": "stun:stun.l.google.com:19302"},
             {
-                "urls": ["turn:openrelay.metered.ca:80", "turn:openrelay.metered.ca:443"],
+                "urls": ["turn:openrelay.metered.ca:80?transport=tcp"],
                 "username": "openrelayproject",
                 "credential": "openrelayproject"
             }
