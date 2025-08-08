@@ -7,3 +7,5 @@ deep-translator
 langdetect
 av
 numpy
+pyaudio
+
