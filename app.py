@@ -7,6 +7,7 @@ from pydub import AudioSegment
 import tempfile
 import os
 import uuid
+from pydub.utils import which
 
 # Supported languages
 languages = {
@@ -25,6 +26,9 @@ tts_supported = tts_langs().keys()
 # Streamlit UI
 st.set_page_config(page_title="🎙️ Strategic Meeting", layout="centered")
 st.title("🎙️ Strategic Meeting Translator App")
+
+AudioSegment.converter = which("ffmpeg")
+AudioSegment.ffprobe = which("ffprobe")
 
 mode = st.radio("Choose Mode", ["📝 Text → Voice", "🎤 Voice (Audio File) → Text"])
 
