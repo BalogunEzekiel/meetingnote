@@ -4,9 +4,11 @@ from deep_translator import GoogleTranslator
 from gtts import gTTS
 from gtts.lang import tts_langs
 from pydub import AudioSegment
+from pydub.utils import which
 import tempfile
 import os
 import uuid
+import subprocess
 
 # Supported languages
 languages = {
@@ -36,7 +38,7 @@ else:
     AudioSegment.converter = ffmpeg_path
     AudioSegment.ffprobe = ffprobe_path
     st.success("✅ ffmpeg and ffprobe configured successfully.")
-    
+
 mode = st.radio("Choose Mode", ["📝 Text → Voice", "🎤 Voice (Audio File) → Text"])
 
 selected_languages = st.multiselect(
@@ -73,7 +75,7 @@ if mode == "📝 Text → Voice":
                 except Exception as e:
                     st.error(f"❌ Error for {lang}: {e}")
 
-# VOICE TO TEXT (with File Upload)
+# VOICE TO TEXT
 else:
     st.info("🎧 Upload an audio file (.mp3, .wav, or .aac) of your voice")
     uploaded_file = st.file_uploader("Upload Audio", type=["mp3", "wav", "aac"])
@@ -86,12 +88,12 @@ else:
                 temp_audio_file.write(uploaded_file.read())
                 temp_input_path = temp_audio_file.name
 
-            # Convert to WAV using pydub
+            # Convert to WAV
             audio = AudioSegment.from_file(temp_input_path)
             wav_path = temp_input_path.replace(file_suffix, ".wav")
             audio.export(wav_path, format="wav")
 
-            # Recognize speech from WAV
+            # Speech recognition
             recognizer = sr.Recognizer()
             with sr.AudioFile(wav_path) as source:
                 audio_data = recognizer.record(source)
