@@ -74,7 +74,8 @@ class AudioProcessor(AudioProcessorBase):
         except Exception:
             self.result_queue.put("[Could not transcribe speech]")
         finally:
-            os.remove(audio_path)
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
 
         return frame
 
@@ -92,6 +93,7 @@ webrtc_ctx = webrtc_streamer(
     async_processing=True
 )
 
+# Retrieve transcription from real-time input
 if webrtc_ctx and webrtc_ctx.state.playing:
     if webrtc_ctx.audio_processor:
         try:
@@ -101,22 +103,21 @@ if webrtc_ctx and webrtc_ctx.state.playing:
         except queue.Empty:
             pass
 
-# Display transcription & translation from live input
+# Display transcription and translation
 if st.session_state.transcribed:
     st.markdown("### ✏️ Transcribed Text")
     st.write(st.session_state.transcribed)
 
-    target_code = languages[target_lang]
     translated = translate_text(
         st.session_state.transcribed,
         src_lang=languages[source_lang],
-        target_lang=target_code
+        target_lang=languages[target_lang]
     )
 
     st.markdown("### 🌍 Translated Text")
     st.success(translated)
 
-    audio_file = generate_tts_audio(translated, lang_code=target_code)
+    audio_file = generate_tts_audio(translated, lang_code=languages[target_lang])
     if audio_file:
         st.markdown("### 🔊 Translated Audio")
         with open(audio_file, "rb") as f:
@@ -125,20 +126,23 @@ if st.session_state.transcribed:
     else:
         st.warning(f"Speech not supported for language: {target_lang}")
 
-# Upload .aac file for transcription
+# Upload section
 st.markdown("### 📤 Or Upload an .aac File for Transcription")
 uploaded_file = st.file_uploader("Upload an AAC audio file", type=["aac"])
 
 if uploaded_file:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".aac") as temp_aac:
-        temp_aac.write(uploaded_file.read())
-        temp_aac_path = temp_aac.name
-
     try:
+        # Save uploaded .aac file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".aac") as temp_aac:
+            temp_aac.write(uploaded_file.read())
+            temp_aac_path = temp_aac.name
+
+        # Convert to .wav
         audio = AudioSegment.from_file(temp_aac_path, format="aac")
         temp_wav_path = temp_aac_path.replace(".aac", ".wav")
         audio.export(temp_wav_path, format="wav")
 
+        # Transcribe
         recognizer = sr.Recognizer()
         with sr.AudioFile(temp_wav_path) as source:
             audio_data = recognizer.record(source)
@@ -147,6 +151,7 @@ if uploaded_file:
         st.markdown("### ✏️ Transcribed Text from Upload")
         st.write(uploaded_transcript)
 
+        # Translate and synthesize
         translated = translate_text(
             uploaded_transcript,
             src_lang=languages[source_lang],
@@ -166,8 +171,12 @@ if uploaded_file:
             st.warning(f"Speech not supported for language: {target_lang}")
 
     except Exception as e:
-        st.error(f"Error processing uploaded audio: {e}")
+        st.error("Error processing uploaded audio.")
+        st.exception(e)
+
     finally:
-        os.remove(temp_aac_path)
-        if os.path.exists(temp_wav_path):
+        # Clean up
+        if 'temp_aac_path' in locals() and os.path.exists(temp_aac_path):
+            os.remove(temp_aac_path)
+        if 'temp_wav_path' in locals() and os.path.exists(temp_wav_path):
             os.remove(temp_wav_path)
