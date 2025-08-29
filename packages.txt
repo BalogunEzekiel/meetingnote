@@ -1,11 +1,12 @@
-#libavdevice-dev
-#libavfilter-dev
-#libavformat-dev
-#libavcodec-dev
-#libavutil-dev
-#libswscale-dev
-#ffmpeg
+ffmpeg
+libavdevice-dev
+libavfilter-dev
+libavformat-dev
+libavcodec-dev
+libavutil-dev
+libswscale-dev
+libopus-dev
+
 #portaudio19-dev
 #python3-pyaudio
 
-ffmpeg
