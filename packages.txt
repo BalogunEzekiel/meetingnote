@@ -1,4 +1,5 @@
 ffmpeg
+portaudio19-dev
 libavdevice-dev
 libavfilter-dev
 libavformat-dev
@@ -6,7 +7,5 @@ libavcodec-dev
 libavutil-dev
 libswscale-dev
 libopus-dev
-
-portaudio19-dev
 python3-pyaudio
 
