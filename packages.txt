@@ -7,6 +7,6 @@ libavutil-dev
 libswscale-dev
 libopus-dev
 
-#portaudio19-dev
-#python3-pyaudio
+portaudio19-dev
+python3-pyaudio
 
